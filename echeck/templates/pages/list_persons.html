@@ -1,0 +1,74 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block content %}
+<div class="col-lg-10 grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">View People</h4>
+        <p class="card-description">
+          People<code>/Visitor</code>
+        </p>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>
+                  Image
+                </th>
+                <th>
+                  Person ID
+                </th>
+                <th>
+                  First name
+                </th>
+                <th>
+                  Last name
+                </th>
+                <th>
+                  Position
+                </th>
+                <th>
+                  Phone
+                </th>
+                <th>
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for person in persons %}
+              <tr>
+                <td class="py-1">
+                  <img src="{{ person.img }}" alt="image"/>
+                </td>
+                <td>
+                  {{ person.id }}
+                </td>
+                <td>
+                  {{ person.fname }}
+                </td>
+                <td>
+                  {{ person.lname }}
+                </td>
+                <td>
+                  {{ person.card_type }}
+                </td>
+                <td>
+                  {{ person.phone }}
+                </td>
+                <td>
+                  <a href="{% url 'view_person' person.id %}">
+                    <div class="col-sm-6 col-md-4 col-lg-3 text-primary">
+                      <i class="mdi mdi-eye"></i> 
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}

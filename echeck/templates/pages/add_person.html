@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="col-10 grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">Add Person</h4>
+        <p class="card-description">
+          Fill The Form To Add
+        </p>
+        <form class="forms-sample" method="post">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="id_fname">First Name</label>
+            {{ form.fname }}
+          </div>
+          <div class="form-group">
+            <label for="id_lname">Last Name</label>
+            {{ form.lname }}
+          </div>
+          <div class="form-group">
+            <label for="id_card_type">Position</label>
+            {{ form.card_type }}
+          </div>
+          <div class="form-group">
+            <label for="id_gender">Gender</label>
+            {{ form.gender }}
+          </div>
+          <div class="form-group">
+            <label for="id_img">File upload</label>
+            {{ form.img }}
+            <div class="input-group col-xs-12">
+             <button type="button" class="btn btn-primary" onclick="startWebcam()">Start Webcam</button>
+              
+                   <div class="card-body" id="st" style="display:none;">
+                        <div class="text-center mb-4">
+                            <p>Use your webcam to capture an image.</p>
+                        </div>
+                        <div class="text-center mb-4">
+                            <video id="webcam" autoplay playsinline style="width: 100%; max-width: 600px;"></video>
+                        </div>
+                        <div class="text-center mb-4">
+                            <canvas id="capturedImageCanvas" style="display: none;"></canvas>
+                            <button type="button" class="btn btn-primary mr-2" onclick="captureOwnerImage()" id="captureButton" disabled>Capture Image</button>
+                            <button type="button" class="btn btn-danger" onclick="stopWebcam()">Stop Webcam</button>
+                        </div>
+                    </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="id_city">City</label>
+            {{ form.city }}
+          </div>
+          <div class="form-group">
+            <label for="id_phone">Phone</label>
+            {{ form.phone }}
+          </div>
+          <div class="form-group">
+            <label for="id_serial_number">Serial Number</label>
+            {{ form.serial_number }}
+          </div>
+          <div class="form-group">
+            <label for="id_brand">Brand</label>
+            {{ form.brand }}
+          </div>
+          
+          <input type="hidden" id="face_encoding_input" name="face_encoding">
+
+          <button type="submit" class="btn btn-primary mr-2">Submit</button>
+          <button type="reset" class="btn btn-light">Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+    let webcamStream;
+    const video = document.getElementById('webcam');
+    const capturedImageCanvas = document.getElementById('capturedImageCanvas');
+    const faceEncodingInput = document.getElementById('face_encoding_input');
+    const captureButton = document.getElementById('captureButton');
+
+    function startWebcam() {
+        document.getElementById('st').style.display = "block";
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                webcamStream = stream;
+                video.srcObject = stream;
+                video.play();
+                captureButton.disabled = false;
+            })
+            .catch((err) => {
+                console.error('Error accessing webcam:', err);
+            });
+    }
+
+    function captureOwnerImage() {
+        const context = capturedImageCanvas.getContext('2d');
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+        capturedImageCanvas.width = videoWidth;
+        capturedImageCanvas.height = videoHeight;
+        context.drawImage(video, 0, 0, videoWidth, videoHeight);
+
+        const capturedImageBase64 = capturedImageCanvas.toDataURL('image/jpeg');
+
+        fetch('/save_image/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ image_data: capturedImageBase64 })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                faceEncodingInput.value = data.face_encoding;
+            } else {
+                console.error('Error capturing image:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error capturing image:', error);
+        });
+    }
+
+    function stopWebcam() {
+        document.getElementById('st').style.display = "none";
+        if (webcamStream) {
+            webcamStream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+            captureButton.disabled = true;
+        }
+    }
+</script>
+{% endblock %}

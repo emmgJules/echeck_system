@@ -1,0 +1,81 @@
+{% extends '../index.html' %}
+{%load static%}
+{% block content %}
+
+<div class="col-lg-10 grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">View students</h4>
+        <p class="card-description">
+          Students<code>/Vistor</code>
+        </p>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>
+                  Image
+                </th>
+                <th>
+                  Student ID
+                </th>
+
+                <th>
+                  First name
+                </th>
+                <th>
+                  Last name
+                </th>
+                <th>
+                  Postion
+                </th>
+                <th>
+                  Phone
+                </th>
+                <th>
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+              {% if students %}
+                {% for student in students %}
+                <td class="py-1">
+                  <img src="#" alt="image"/>
+                </td>
+                <td>
+                  {{student.id}}
+                </td>
+                <td>
+                  {{student.fname}}
+                </td>
+                <td>
+                  {{student.lname}}
+                </td>
+                <td>
+                  {{student.postion}}
+                </td>
+                <td>
+                  {{student.phone}}
+                </td>
+                
+                <td>
+                  <a href="{% url 'viewstudent' student.id %}">
+                  <div class="col-sm-6 col-md-4 col-lg-3 text-primary">
+                    <i class="mdi mdi-eye"></i> 
+                  </a>
+                </div>
+                </td>
+                </tr>
+                 {% endfor %}
+                  {% else %}
+                <p>no student found!</p>
+             {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {%endblock%}

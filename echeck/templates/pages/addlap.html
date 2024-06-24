@@ -1,0 +1,29 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block content %}
+<div class="col-10 grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">Add laptop</h4>
+        <p class="card-description">
+          Fill The Form To Add
+        </p>
+        <form class="forms-sample" method="post" >
+          {% csrf_token %}
+
+          <div class="form-group">
+            <label for="exampleInputCity1">Serial_number</label>
+            <input type="text" name="serial_number" class="form-control" id="exampleInputCity1" placeholder="Serial_number">
+          </div>
+          <div class="form-group">
+            <label for="exampleInputCity1">Brand Name</label>
+            <input type="text" name="brand" class="form-control" id="exampleInputCity1" placeholder="Enter bland name (ex:LENOVO)">
+          </div>
+
+          <button type="submit" class="btn btn-primary mr-2">Submit</button>
+          <button type="reset" class="btn btn-light">Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {%endblock%}

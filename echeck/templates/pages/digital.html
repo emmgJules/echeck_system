@@ -1,0 +1,66 @@
+{% extends '../index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="col-10 grid-margin stretch-card">
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Digital</h4>
+            <!-- Container for video feed -->
+            <div id="video-container">
+                <img src="{% url 'video_feed' %}" id="video-feed" />
+                <p id="student-info">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include jQuery for easier DOM manipulation -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    // Function to update student info on the frontend
+    function updateStudentInfo(studentInfo) {
+        // Extract student ID and name from JSON data
+        var studentId = studentInfo.id;
+        var studentName = studentInfo.name;
+
+        // Update student info paragraph
+        var studentInfoElement = document.getElementById("student-info");
+        studentInfoElement.textContent = "Student ID: " + studentId + ", Name: " + studentName;
+    }
+
+    // Function to fetch video feed and student info from backend
+    function fetchVideoFeed() {
+        // Fetch video feed and student info using AJAX
+        $.ajax({
+            url: "{% url 'video_feed' %}",
+            type: "GET",
+            dataType: "multipart/x-mixed-replace",
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                var boundaryIndex = response.indexOf("\r\n\r\n");
+                var imageData = response.substring(boundaryIndex + 4);
+                var studentInfoJson = response.substring(0, boundaryIndex);
+
+                // Parse student info JSON data
+                var studentInfo = JSON.parse(studentInfoJson);
+
+                // Update video feed and student info on the frontend
+                document.getElementById("video-feed").src = "data:image/jpeg;base64," + btoa(imageData);
+                updateStudentInfo(studentInfo);
+
+                // Continue fetching video feed recursively
+                fetchVideoFeed();
+            },
+            error: function (xhr, status, error) {
+                console.error("Error fetching video feed:", error);
+            }
+        });
+    }
+
+    // Call fetchVideoFeed function to start fetching video feed and student info
+    fetchVideoFeed();
+</script>
+{% endblock %}
