@@ -1,0 +1,19 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block content %}
+<div class="col-10 grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">Confirm Delete</h4>
+        <p class="card-description">
+          Are you sure you want to delete this person?
+        </p>
+        <form class="forms-sample" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger mr-2">Yes, delete</button>
+          <a href="{% url 'list_persons' %}" class="btn btn-light">Cancel</a>
+        </form>
+      </div>
+    </div>
+</div>
+{% endblock %}

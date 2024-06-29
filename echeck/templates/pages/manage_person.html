@@ -1,0 +1,113 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block content %}
+<div class="col-lg-10">
+    <div class="card card-outline card-primary">
+        <div class="card-header">
+            <h4 class="card-title">Person Details {{person.id}}</h4>
+        </div>
+        <div class="card-body" id="print_out">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="control-label text-info">Person Id</label>
+                        <div>00{{person.id}}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="supplier_id" class="control-label text-info">Postion</label>
+                            <div>{{person.card_type}}</div>
+                        </div>
+                    </div>
+                </div>
+                <h4 class="text-info">Details-Personal</h4>
+                <table class="table table-striped table-bordered" id="list">
+                    <colgroup>
+                        <col width="10%">
+                        <col width="10%">
+                        <col width="30%">
+                        <col width="25%">
+                        <col width="25%">
+                    </colgroup>
+                    <thead>
+                        <tr class="text-light bg-primary">
+                            <th class="text-center py-1 px-2">First Name</th>
+                            <th class="text-center py-1 px-2">Last Name</th>
+                            <th class="text-center py-1 px-2">Phone</th>
+                            <th class="text-center py-1 px-2">Location</th>
+                            <th class="text-center py-1 px-2">Date Registered</th>
+                            <th class="text-center py-1 px-2">Year of Study</th>
+                            <th class="text-center py-1 px-2">Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                          
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="text-center py-2 px-2" >{{person.fname}} </td>
+                            <td class="text-center py-1 px-2" >{{person.lname}}</td>
+                            <td class="text-center py-1 px-2" >{{person.phone}} </td>
+                            <td class="text-center py-1 px-2" >{{person.city}}</td>
+                            <td class="text-center py-1 px-2" >{{person.created}}</td>
+                            <td class="text-center py-1 px-2" ><img src="{{person.img}}" alt=""></td>
+                        </tr>
+
+                    </tfoot>
+                </table>
+                <h4 class="text-info pt-4">Details-Peroperty</h4>
+                <table class=" col-lg-2 table table-striped table-bordered" id="list">
+                    <colgroup>
+                        <col width="10%">
+                        <col width="10%">
+                        <col width="30%">
+                        <col width="25%">
+                        <col width="25%">
+                    </colgroup>
+                    <thead>
+                        <tr class="text-light bg-primary">
+                            <th class="text-center py-1 px-2">Laptop Name</th>
+                            <th class="text-center py-1 px-2">Laptop serial_number</th>
+                            <th class="text-center py-1 px-2">Card Id</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                          
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="text-center py-2 px-2" >{{person.brand}}</td>
+                            <td class="text-center py-1 px-2" > {{person.serial_number}}</td>
+                            <td class="text-center py-1 px-2" > {{person.card_id}}</td>
+                       
+                            
+                        </tr>
+
+                    </tfoot>
+                </table>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="remarks" class="text-info control-label">Remarks</label>
+                            <p></p>
+                        </div>
+                    </div>
+
+    
+                </div>
+            </div>
+        </div>
+<div class="card-footer py-1 text-center">
+    <button class="btn btn-flat btn-success" type="button" id="print">Print</button>
+    <a class="btn btn-flat btn-primary" href="{% url 'delete_person' person.id %}">Remove</a>
+    <a class="btn btn-flat btn-warning" href="{% url 'update_person' person.id %}">Edit</a>
+    <a class="btn btn-flat btn-dark" href="{% url 'list_persons' %}">Back To List</a>
+</div>
+
+    </div>
+
+</div>
+
+<br>
+<br>
+{%endblock%}

@@ -1,0 +1,81 @@
+{% extends '../index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Real-Time Entry Recording</h2>
+                    <div id="entry-status" class="text-center mb-4">
+                        <img src="{% static 'images/card.png' %}" class="img-fluid mb-3" alt="Tap Card Image" style="max-width: 400px;">
+                        <p class="lead">Tap your card to begin...</p>
+                    </div>
+                    <div id="entry-details" style="display: none;">
+                        <h4>Entry Details:</h4>
+                        <p><strong>Person:</strong> <span id="person-name"></span></p>
+                        <p><strong>Card ID:</strong> <span id="card-id"></span></p>
+                        <p><strong>Last Entry Date:</strong> <span id="last-entry-date"></span></p>
+                        <img id="person-img" src="" class="img-fluid rounded-circle mb-3" alt="Person Image" style="max-width: 200px;">
+                        <button id="record-entry-btn" class="btn btn-primary">Record Entry</button>
+                    </div>
+                    <div id="not-registered" class="text-center mt-4" style="display: none;">
+                        <p class="lead">Your card is not recognized.</p>
+                        <button id="register-btn" class="btn btn-primary">Register</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to fetch person details based on card ID
+        function fetchPersonDetails(cardId) {
+            fetch('/fetch-person-details/?card_id=' + cardId, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.person) {
+                    // Update UI with person details
+                    document.getElementById('person-name').textContent = `${data.person.fname} ${data.person.lname}`;
+                    document.getElementById('card-id').textContent = data.person.card_id;
+                    document.getElementById('last-entry-date').textContent = data.person.last_entry_date;
+                    document.getElementById('current-entry-date').textContent = data.person.current_entry_date;
+                    document.getElementById('person-img').src = data.person.img_url;
+                    document.getElementById('entry-details').style.display = 'block';
+                    document.getElementById('entry-status').style.display = 'none';
+                } else {
+                    // Handle case where person data is not found
+                    console.error('Person data not found:', data);
+                    document.getElementById('entry-status').textContent = 'Card not recognized. Register first.';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching person details:', error);
+                document.getElementById('entry-status').textContent = 'Error communicating with server.';
+            });
+        }
+    
+        // Simulate card tap event (replace with actual event trigger from Arduino)
+        document.getElementById('entry-status').addEventListener('click', function() {
+            const cardId = '1234567890'; // Replace with actual card ID received from Arduino
+            fetchPersonDetails(cardId);
+        });
+    });
+    </script>
+    
+{% endblock %}

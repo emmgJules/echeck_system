@@ -1,257 +1,403 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import StreamingHttpResponse, JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
-from .models import Students, Entry, UserProfile, Person
-from .forms import PersonForm,UserProfileForm
-import cv2
-import face_recognition
-import numpy as np
-import base64
-import os
-import uuid
-import json
+from .models import Entry, UserProfile, Person
+from .forms import PersonForm, UserProfileForm
+from django.core.files.storage import FileSystemStorage
+from .serial_com import read_card_id_from_serial
+from django.views.decorators.csrf import csrf_exempt
+from .forms import UserProfileForm, UserCreationForm
+ # views.py
+from django.shortcuts import render, HttpResponse, get_object_or_404
+from django.http import JsonResponse
+from .models import Entry, Person,Notification
+from datetime import datetime
 
-# Create a temporary image folder if not exists
-def create_temp_image_folder():
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    temp_image_folder = os.path.join(base_dir, 'students_images')
-    if not os.path.exists(temp_image_folder):
-        os.makedirs(temp_image_folder)
-    return temp_image_folder
 
-temp_image_folder = create_temp_image_folder()
 
-def index(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('dash')
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from .models import Entry, Person
+from datetime import datetime
+from .serial_com import read_card_id_from_serial  # Assuming you have a function for serial communication
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import logout as django_logout
+
+from django.shortcuts import render
+from .models import Entry, Person
+from django.db.models import Count
+import datetime
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Entry, Person
+from datetime import datetime
+
+class CoreView:
+    # views.py
+
+
+    @staticmethod
+    @csrf_exempt
+    def fetch_card_id(request):
+        if request.method == 'GET':
+            card_id = read_card_id_from_serial()
+            print(f"Received card ID from Arduino: {card_id}")
+            if card_id:
+                return JsonResponse({'card_id': card_id})
+            else:
+                return JsonResponse({'error': 'Failed to fetch card ID'}, status=500)
         else:
-            messages.error(request, "Username/Password does not exist!")   
-    return render(request, 'skydash/login.html')
+            return JsonResponse({'error': 'Invalid request method'}, status=405)
+    def generate_report(request):
+    # Handle form submission
+        if request.method == 'POST':
+            # Retrieve form data
+            start_date = request.POST.get('start_date')
+            end_date = request.POST.get('end_date')
+            card_type = request.POST.get('card_type')
 
-@login_required(login_url='login')
-def dash(request):
-    q = request.GET.get('q', '')
-    students = Person.objects.filter(Q(fname__icontains=q) )
-    return render(request, 'skydash/pages/dashboard.html', {'students': students})
+            # Query entries based on selected criteria
+            entries = Entry.objects.filter(entry_date__range=[start_date, end_date])
+            if card_type:
+                entries = entries.filter(person__card_type=card_type)
 
-@login_required(login_url='login')
-def search(request):
-    q = request.GET.get('q', '')
-    students = Students.objects.filter(Q(fname__icontains=q) | Q(lname__icontains=q) | Q(serial_number__icontains=q))
-    return render(request, 'skydash/pages/search.html', {'students': students})
+            # Prepare context for rendering
+            context = {
+                'entries': entries,
+                'start_date': start_date,
+                'end_date': end_date,
+                'card_type': card_type,
+            }
+            return render(request, 'pages/report.html', context)
+
+        # Render initial form
+        return render(request, 'pages/report_form.html')
+
+    @staticmethod
+    def fetch_notifications(request):
+        notifications = Notification.objects.filter(user=request.user).order_by('-timestamp')[:5]
+        notifications_data = []
+        for notification in notifications:
+            notifications_data.append({
+                'message': notification.message,
+                'timestamp': notification.timestamp.strftime('%Y-%m-%d %H:%M:%S')  # Format timestamp as needed
+            })
+        return JsonResponse(notifications_data, safe=False)
+
+    @staticmethod
+    def index(request):
+        if request.method == 'POST':
+            username = request.POST['username']
+            password = request.POST['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('dash')
+            else:
+                messages.error(request, "Username/Password does not exist!")   
+        return render(request, 'login.html')
+
+    @staticmethod
+    @login_required(login_url='index')
+    def dash(request):
+        # Fetch data for statistics
+        total_today_entries = Entry.objects.filter(entry_date__date=datetime.today()).count()
+        total_entries = Entry.objects.count()
+        total_students = Person.objects.filter(card_type='student').count()
+        total_staff = Person.objects.filter(card_type='staff').count()
+        total_teachers = Person.objects.filter(card_type='teacher').count()
+        total_visitors = Person.objects.filter(card_type='visitor').count()
+        
+        # Additional data retrieval as needed
+        
+        context = {
+            'total_today_entries': total_today_entries,
+            'total_entries': total_entries,
+            'total_students': total_students,
+            'total_staff': total_staff,
+            'total_teachers': total_teachers,
+            'total_visitors': total_visitors,
+            'today_date': datetime.today().strftime('%d %b %Y'),  # Format today's date
+        }
+        
+        return render(request, 'pages/dashboard.html', context)
+
+    @staticmethod
+    @login_required(login_url='index')
+    
+    def search(request):
+        query = request.GET.get('q')
+        context = {}
+        if query:
+            # Perform search across relevant models
+            entries = Entry.objects.filter(
+                Q(person__fname__icontains=query) |
+                Q(person__lname__icontains=query) |
+                Q(person__card_id__icontains=query) |
+                Q(card_id__icontains=query)
+            ).distinct()
+
+            persons = Person.objects.filter(
+                Q(fname__icontains=query) |
+                Q(lname__icontains=query) |
+                Q(card_id__icontains=query)
+            ).distinct()
+
+            users = User.objects.filter(
+                Q(username__icontains=query) |
+                Q(email__icontains=query)
+            ).distinct()
+
+            context = {
+                'entries': entries,
+                'persons': persons,
+                'users': users,
+                'query': query
+            }
+
+        return render(request, 'pages/search.html', context)
+
+    
+    @staticmethod
+
+    def logout(request):
+        django_logout(request)
+        return redirect('index')
+
+# Additional views as per your application needs
+
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from .models import Person, Entry, Notification
+from datetime import datetime
+from .serial_com import read_card_id_from_serial  # Assuming you have a function for serial communication
+
+class EntryView:
+    @staticmethod
+    @login_required(login_url='index')
+    def entry_interface(request):
+        card = read_card_id_from_serial()
+
+        return render(request, 'pages/entry_interface.html', {'card': card})
+
+    @staticmethod
+    @csrf_exempt
+    @login_required(login_url='index')
+    def fetch_person_details(request):
+        if request.method == 'GET' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            
+            card_id = read_card_id_from_serial()  # Replace with your function to read card ID from Arduino
+            if card_id:
+                person = get_object_or_404(Person, card_id=card_id)
+                
+                # Retrieve the last entry date before creating a new one
+                last_entry = Entry.objects.filter(person=person).order_by('-entry_date').first()
+                last_entry_date_str = last_entry.entry_date.strftime('%Y-%m-%d %H:%M:%S') if last_entry else 'No previous entry'
+                
+                # Create a new entry for the person (auto_now_add will set entry_date)
+                entry = Entry.objects.create(person=person, card_id=card_id)
+                Notification.objects.create(user=request.user, message="New Entry Created.")
+                
+                # Get the current entry date
+                current_entry_date_str = entry.entry_date.strftime('%Y-%m-%d %H:%M:%S')
+                
+                person_data = {
+                    'id': person.id,
+                    'fname': person.fname,
+                    'lname': person.lname,
+                    'img_url': str(person.img) if person.img else '',  # Convert ImageFieldFile to URL
+                    'last_entry_date': last_entry_date_str,  # Return the last entry date from the database
+                    'current_entry_date': current_entry_date_str,  # Return the current entry date
+                    'card_id': card_id  # Include the card ID
+                }
+                
+                return JsonResponse({'person': person_data})
+            else:
+                return JsonResponse({'error': 'Failed to fetch card ID'}, status=500)
+        else:
+            return HttpResponseBadRequest('Invalid request method or not AJAX')
+
+    @staticmethod
+    @csrf_exempt
+    @login_required(login_url='index')
+    def record_entry(request):
+        if request.method == 'POST' and request.is_ajax():
+            card_id = request.POST.get('card_id')
+            entry_date_str = request.POST.get('entry_date')
+            entry_date = datetime.strptime(entry_date_str, '%Y-%m-%d %H:%M:%S')
+            
+            # Retrieve person based on card_id (assuming card_id uniquely identifies a person)
+            person = get_object_or_404(Person, card_id=card_id)
+            
+            # Record the entry
+            entry = Entry.objects.create(person=person, entry_date=entry_date)
+            
+            # Return success response
+            return JsonResponse({'status': 'success'})
+        
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method or not AJAX'})
+
+    @staticmethod
+    @login_required(login_url='index')
+    def list_entry(request):
+        entries = Entry.objects.all()  # Query all entries or apply filters as needed
+        context = {'entries': entries}
+        return render(request, 'pages/list_entry.html', context)
+
+    @staticmethod
+    def report_entry(request):
+        return render(request, 'pages/create_entry.html')
 
 class PersonView:
     form_class = PersonForm
 
     @staticmethod
+    @login_required(login_url='index')
     def create_person(request):
         if request.method == 'POST':
-            form = PersonForm(request.POST)
-            if form.is_valid():
-                form.save()
-                return redirect('view_students')
-        else:
-            form = PersonForm()
-        return render(request, 'skydash/pages/add_person.html', {'form': form})
+            fname = request.POST.get('fname')
+            lname = request.POST.get('lname')
+            card_id = request.POST.get('card_id')
+            card_type = request.POST.get('card_type')
+            gender = request.POST.get('gender')
+            img = request.FILES['img']
+            city = request.POST.get('city')
+            phone = request.POST.get('phone')
+            serial_number = request.POST.get('serial_number')
+            brand = request.POST.get('brand')
+
+            fs = FileSystemStorage()
+            filename = fs.save(img.name, img)
+            uploaded_file_url = fs.url(filename)
+            print(f"Uploaded file URL: {uploaded_file_url}")
+
+
+            person = Person(
+                fname=fname,
+                lname=lname,
+                card_id=card_id,
+                card_type=card_type,
+                gender=gender,
+                img=uploaded_file_url,
+                city=city,
+                phone=phone,
+                serial_number=serial_number,
+                brand=brand
+            )
+            person.save()
+            Notification.objects.create(user=request.user, message="New person created.")
+            print(f"Person image URL in DB: {person.img}")  # Debugging line
+            return redirect('list_persons')  # Redirect to a view that lists persons
+
+        return render(request, 'pages/add_person.html')
 
     @staticmethod
+    @login_required(login_url='index')
     def list_persons(request):
         persons = Person.objects.all()
-        return render(request, 'view_persons.html', {'persons': persons})
-
+        return render(request, 'pages/list_persons.html', {'persons': persons})
+   
     @staticmethod
+    @login_required(login_url='index')
     def read_person(request, pk):
         person = get_object_or_404(Person, pk=pk)
-        return render(request, 'read_person.html', {'person': person})
+        return render(request, 'pages/manage_person.html', {'person': person})
 
     @staticmethod
+    @login_required(login_url='index')
+    def report_persons(request):
+        return render(request, 'pages/report_persons.html')
+
+    @staticmethod
+    @login_required(login_url='index')
     def update_person(request, pk):
         person = get_object_or_404(Person, pk=pk)
         if request.method == 'POST':
             form = PersonForm(request.POST, instance=person)
             if form.is_valid():
                 form.save()
-                return redirect('view_students')
+                Notification.objects.create(user=request.user, message="Person Updated.")
+                return redirect('list_persons')
         else:
             form = PersonForm(instance=person)
-        return render(request, 'skydash/pages/edit_person.html', {'form': form})
+        return render(request, 'pages/edit_person.html', {'form': form})
 
     @staticmethod
+    @login_required(login_url='index')
     def delete_person(request, pk):
         person = get_object_or_404(Person, pk=pk)
         if request.method == 'POST':
             person.delete()
-            return redirect('view_students')
-        return render(request, 'skydash/pages/confirm_delete.html', {'person': person})
+            Notification.objects.create(user=request.user, message="Person Deleted.")
+            return redirect('list_persons')
+        return render(request, 'pages/delete_person.html', {'person': person})
 
-@login_required(login_url='login')
-def updateUser(request):
-    user = request.user
-    user_profile, created = UserProfile.objects.get_or_create(user=user)
-    profile_form = UserProfileForm(instance=user_profile)
-    if request.method == 'POST':
-        profile_form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
-        if profile_form.is_valid():
-            profile_form.save()
-            return redirect('user-profile', pk=user.id)
-    context = {'profile_form': profile_form}
-    return render(request, 'skydash/pages/edit_user.html', context)
+class UserView:
+    @staticmethod
+    @login_required(login_url='index')
+    def create_user(request):
+        if request.method == 'POST':
+            form = UserCreationForm(request.POST)
+            profile_form = UserProfileForm(request.POST, request.FILES)
+            if form.is_valid() and profile_form.is_valid():
+                user = form.save()
+                profile = profile_form.save(commit=False)
+                profile.user = user
+                profile.save()
+                Notification.objects.create(user=request.user, message="New User created.")
+                return redirect('read_user')
+        else:
+            form = UserCreationForm()
+            profile_form = UserProfileForm()
+        context = {'form': form, 'profile_form': profile_form}
+        return render(request, 'pages/create_user.html', context)
 
-def add_entry(request):
-    if request.method == 'POST':
-        fname = request.POST.get('fname')
-        lname = request.POST.get('lname')
-        try:
-            student = Students.objects.get(fname=fname, lname=lname)
-            entry = Entry.objects.create(student_id=student.id)
-            return redirect('view_entries')
-        except Students.DoesNotExist:
-            return HttpResponse("Student Not Found")
-    return render(request, 'skydash/pages/addentry.html')
+    @staticmethod
+    @login_required(login_url='index')
+    def read_user(request):
+        users = User.objects.all()
+        return render(request, 'pages/read_user.html', {'users': users})
 
-def digital(request):
-    return render(request, 'skydash/pages/digital.html')
-
-def view_students(request):
-    students = Students.objects.all()
-    return render(request, 'skydash/pages/viewstudent.html', {'students': students})
-
-def view_entries(request):
-    entries = Entry.objects.all()
-    return render(request, 'skydash/pages/viewentry.html', {'entries': entries})
-
-def viewstudent(request, id):
-    student = get_object_or_404(Students, id=id)
-    return render(request, "skydash/pages/managestudent.html", {'student': student})
-
-def edit_student(request, pk):
-    student = get_object_or_404(Students, pk=pk)
-    if request.method == 'POST':
-        student.fname = request.POST.get('firstName')
-        student.lname = request.POST.get('lastName')
-        student.postion = request.POST.get('postion')
-        student.gender = request.POST.get('gender')
-        student.city = request.POST.get('city')
-        student.phone = request.POST.get('phone')
-        student.serial_number = request.POST.get('serial_number')
-        student.brand = request.POST.get('brand')
-        student.img = request.POST.get('img')
-        student.save()
-        return redirect('view_students')
-    return render(request, 'skydash/pages/edit_student.html', {'student': student})
-
-def delete_student(request, pk):
-    student = get_object_or_404(Students, pk=pk)
-    if request.method == 'POST':
-        student.delete()
-        return redirect('view_students')
-    return render(request, 'skydash/pages/delete_student.html', {'student': student})
-
-@csrf_exempt
-def save_image(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            first_name = data.get('first_name')
-            last_name = data.get('last_name')
-            image_data = data.get('image_data')
-
-            if image_data and first_name and last_name:
-                format, imgstr = image_data.split(';base64,') 
-                nparr = np.frombuffer(base64.b64decode(imgstr), np.uint8)
-                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                image_filename = f'{first_name}_{last_name}_{uuid.uuid4().hex}.jpg'
-                image_path = os.path.join(temp_image_folder, image_filename)
-                cv2.imwrite(image_path, img)
-
-                face_encoding = face_recognition.face_encodings(img)
-                if face_encoding:
-                    face_encoding_str = base64.b64encode(face_encoding[0].tobytes()).decode('utf-8')
-                    return JsonResponse({'success': True, 'message': 'Image captured successfully', 'image_filename': image_filename, 'face_encoding': face_encoding_str})
-                else:
-                    return JsonResponse({'success': False, 'message': 'No face detected in the image'})
-            else:
-                return JsonResponse({'success': False, 'message': 'Incomplete data received'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
-
-def resize(img, size):
-    width = int(img.shape[1] * size)
-    height = int(img.shape[0] * size)
-    dimension = (width, height)
-    return cv2.resize(img, dimension, interpolation=cv2.INTER_AREA)
-
-path = temp_image_folder
-studentimgs = []
-studentnames = []
-mylist = os.listdir(path)
-for cl in mylist:
-    curimg = cv2.imread(f'{path}/{cl}')
-    studentimgs.append(curimg)
-    studentnames.append(os.path.splitext(cl)[0])
-
-def findEncodings(images):
-    encoding_list = []
-    for img in images:
-        img = resize(img, 0.50)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        encoding = face_recognition.face_encodings(img)[0]
-        encoding_list.append(encoding)
-    return encoding_list
-
-encode_list = findEncodings(studentimgs)
-print("Number of face encodings:", len(encode_list))
-
-
-def generate_frames():
-    vid = cv2.VideoCapture(0)
-    while True:
-        success, frame = vid.read()
-        frames = cv2.resize(frame, (0, 0), None, 0.25, 0.25)
-        frames = cv2.cvtColor(frames, cv2.COLOR_BGR2RGB)
-        face_in_frame = face_recognition.face_locations(frames)
-        encoding_in_frame = face_recognition.face_encodings(frames, face_in_frame)
-
-        for incodeface, face_loc in zip(encoding_in_frame, face_in_frame):
-            matches = face_recognition.compare_faces(encode_list, incodeface)
-            facedis = face_recognition.face_distance(encode_list, incodeface)
-            matchindex = np.argmin(facedis)
-            if matches[matchindex]:
-                name = studentnames[matchindex]
-                name=name + '.jpg'
-                print(f"This is The names {name}")
-                try:
-
-                    student=Students.objects.get(img=name) 
-                    stn = student.fname + ' ' + student.lname
-                    student_info = {'id': student.id, 'name': stn}
-                    student_info_json = json.dumps(student_info)
-                    y1, x2, y2, x1 = face_loc
-                    y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
-                    cv2.rectangle(frame, (x1, y2 - 25), (x2, y2), (0, 255, 0), cv2.FILLED)
-                    cv2.putText(frame, stn, (x1 + 6, y1 - 6), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
+    @login_required(login_url='index')
+    def update_user(request, pk):
+        user = get_object_or_404(User, pk=pk)
+        user_profile, created = UserProfile.objects.get_or_create(user=user)
+        
+        if request.method == 'POST':
+            user_form = UserCreationForm(request.POST, instance=user)
+            profile_form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
+            if user_form.is_valid() and profile_form.is_valid():
+                user_form.save()
+                profile_form.save()
+                Notification.objects.create(user=request.user, message="User Updated.")
                 
+                # Optionally, update the session to reflect changes
+                request.session['user'] = user_form.cleaned_data.get('username')
 
-
-                    _, buffer = cv2.imencode('.jpg', frame)
-                    frame = buffer.tobytes()
-
-                    yield (b'--frame\r\n'
-                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n'
-                        b'Content-Type: application/json\r\n\r\n' + student_info_json.encode() + b'\r\n')
-                except Students.DoesNotExist:
-                    pass
-            
+                return redirect('user-profile', pk=pk)  # Redirect to the profile read view
+        else:
+            user_form = UserCreationForm(instance=user)
+            profile_form = UserProfileForm(instance=user_profile)
+        
+        context = {'user_form': user_form, 'profile_form': profile_form}
+        return render(request, 'pages/edit_user.html', context)
+    @staticmethod
+    @login_required(login_url='INDEX')
+    def delete_user(request, pk):
+        user = get_object_or_404(User, pk=pk)
+        if request.method == 'POST':
+            user.delete()
+            Notification.objects.create(user=request.user, message="User Deleted.")
+            return redirect('read_user')
+        return render(request, 'pages/delete_user.html', {'user': user})

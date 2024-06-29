@@ -1,0 +1,34 @@
+{% extends '../index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="col-10 grid-margin stretch-card">
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">List of Entries</h4>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Person Name</th>
+                            <th>Card ID</th>
+                            <th>Entry Date</th>
+                            <th>Image</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                        <tr>
+                            <td>{{ entry.person.fname }} {{ entry.person.lname }}</td>
+                            <td>{{ entry.card_id }}</td>
+                            <td>{{ entry.entry_date }}</td>
+                            <td><img src="{{ entry.person.img }}" class="img-thumbnail" style="max-width: 100px;"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
