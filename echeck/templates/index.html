@@ -37,16 +37,15 @@
 <body>
   <div class="container-scroller">
     <!-- partial:partials/_navbar.html -->
-    {% include 'skydash/partials/_navbar.html' %}
+    {% include 'partials/_navbar.html' %}
     
     <!-- partial -->
     <div class="container-fluid page-body-wrapper">
       <!-- partial:partials/_settings-panel.html -->
 
-      {% include 'skydash/partials/_settings-panel.html' %}
       <!-- partial -->
       <!-- partial:partials/_sidebar.html -->
-      {% include 'skydash/partials/_sidebar.html' %}
+      {% include 'partials/_sidebar.html' %}
       <!-- partial -->
       {% block content %}
       {% endblock %}
@@ -78,6 +77,7 @@
   <!-- Custom js for this page-->
   <script src="{% static 'js/dashboard.js'%}"></script>
   <script src="{% static 'js/Chart.roundedBarCharts.js'%}"></script>
+  <script src="{% static 'js/file-upload.js'%}"></script>
   <!-- End custom js for this page-->
 </body>
 

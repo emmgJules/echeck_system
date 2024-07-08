@@ -1,136 +1,111 @@
-{% extends 'base.html' %}
+{% extends '../index.html' %}
 {% load static %}
 {% block content %}
 <div class="col-10 grid-margin stretch-card">
     <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Add Person</h4>
-        <p class="card-description">
-          Fill The Form To Add
-        </p>
-        <form class="forms-sample" method="post">
-          {% csrf_token %}
-          <div class="form-group">
-            <label for="id_fname">First Name</label>
-            {{ form.fname }}
-          </div>
-          <div class="form-group">
-            <label for="id_lname">Last Name</label>
-            {{ form.lname }}
-          </div>
-          <div class="form-group">
-            <label for="id_card_type">Position</label>
-            {{ form.card_type }}
-          </div>
-          <div class="form-group">
-            <label for="id_gender">Gender</label>
-            {{ form.gender }}
-          </div>
-          <div class="form-group">
-            <label for="id_img">File upload</label>
-            {{ form.img }}
-            <div class="input-group col-xs-12">
-             <button type="button" class="btn btn-primary" onclick="startWebcam()">Start Webcam</button>
-              
-                   <div class="card-body" id="st" style="display:none;">
-                        <div class="text-center mb-4">
-                            <p>Use your webcam to capture an image.</p>
-                        </div>
-                        <div class="text-center mb-4">
-                            <video id="webcam" autoplay playsinline style="width: 100%; max-width: 600px;"></video>
-                        </div>
-                        <div class="text-center mb-4">
-                            <canvas id="capturedImageCanvas" style="display: none;"></canvas>
-                            <button type="button" class="btn btn-primary mr-2" onclick="captureOwnerImage()" id="captureButton" disabled>Capture Image</button>
-                            <button type="button" class="btn btn-danger" onclick="stopWebcam()">Stop Webcam</button>
-                        </div>
+        <div class="card-body">
+            <h4 class="card-title">Add Person</h4>
+            <p class="card-description">
+                Fill The Form To Add
+            </p>
+            <form id="addPersonForm" class="forms-sample" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="fname">First Name</label>
+                    <input type="text" class="form-control" id="fname" name="fname" required>
+                </div>
+                <div class="form-group">
+                    <label for="lname">Last Name</label>
+                    <input type="text" class="form-control" id="lname" name="lname" required>
+                </div>
+                <div class="form-group">
+                    <label for="card_id">Card ID</label>
+                    <input type="text" class="form-control" id="card_id" name="card_id" required>
+                    <small id="tapCardHelp" class="form-text text-muted">Click here and tap your card to populate the ID.</small>
+                </div>
+                <div class="form-group">
+                    <label for="card_type">Position</label>
+                    <select class="form-control" id="card_type" name="card_type" required>
+                        <option value="student">Student</option>
+                        <option value="staff">Staff</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="visitor">Visitor</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select class="form-control" id="gender" name="gender" required>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="img">File upload</label>
+                    <input type="file" name="img" class="file-upload-default">
+                    <div class="input-group col-xs-12">
+                        <input type="text" class="form-control file-upload-info" disabled
+                            placeholder="Upload Image">
+                        <span class="input-group-append">
+                            <button class="file-upload-browse btn btn-primary" type="button">Upload</button>
+                        </span>
                     </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="id_city">City</label>
-            {{ form.city }}
-          </div>
-          <div class="form-group">
-            <label for="id_phone">Phone</label>
-            {{ form.phone }}
-          </div>
-          <div class="form-group">
-            <label for="id_serial_number">Serial Number</label>
-            {{ form.serial_number }}
-          </div>
-          <div class="form-group">
-            <label for="id_brand">Brand</label>
-            {{ form.brand }}
-          </div>
-          
-          <input type="hidden" id="face_encoding_input" name="face_encoding">
-
-          <button type="submit" class="btn btn-primary mr-2">Submit</button>
-          <button type="reset" class="btn btn-light">Cancel</button>
-        </form>
-      </div>
+                </div>
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" class="form-control" id="city" name="city" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" class="form-control" id="phone" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="serial_number">Serial Number</label>
+                    <input type="text" class="form-control" id="serial_number" name="serial_number" required>
+                </div>
+                <div class="form-group">
+                    <label for="brand">Brand</label>
+                    <input type="text" class="form-control" id="brand" name="brand" required>
+                </div>
+                <button type="submit" class="btn btn-primary mr-2">Submit</button>
+                <button type="reset" class="btn btn-light">Cancel</button>
+            </form>
+        </div>
     </div>
-  </div>
+</div>
 
 <script>
-    let webcamStream;
-    const video = document.getElementById('webcam');
-    const capturedImageCanvas = document.getElementById('capturedImageCanvas');
-    const faceEncodingInput = document.getElementById('face_encoding_input');
-    const captureButton = document.getElementById('captureButton');
+document.addEventListener('DOMContentLoaded', function() {
+    const cardIdInput = document.getElementById('card_id');
+    const tapCardHelp = document.getElementById('tapCardHelp');
 
-    function startWebcam() {
-        document.getElementById('st').style.display = "block";
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then((stream) => {
-                webcamStream = stream;
-                video.srcObject = stream;
-                video.play();
-                captureButton.disabled = false;
+    cardIdInput.addEventListener('click', function() {
+        tapCardHelp.style.display = 'block';
+    });
+
+    cardIdInput.addEventListener('change', function() {
+        tapCardHelp.style.display = 'none'; // Hide the help text after tapping the card
+    });
+
+    cardIdInput.addEventListener('focus', function() {
+        fetchCardId();
+    });
+
+    function fetchCardId() {
+        fetch('/fetch-card-id/')
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.card_id) {
+                    cardIdInput.value = data.card_id;
+                    tapCardHelp.style.display = 'none'; // Hide the help text after successful fetch
+                } else {
+                    console.error('Error fetching card ID');
+                }
             })
-            .catch((err) => {
-                console.error('Error accessing webcam:', err);
+            .catch(error => {
+                console.error('Error fetching card ID:', error);
             });
     }
-
-    function captureOwnerImage() {
-        const context = capturedImageCanvas.getContext('2d');
-        const videoWidth = video.videoWidth;
-        const videoHeight = video.videoHeight;
-        capturedImageCanvas.width = videoWidth;
-        capturedImageCanvas.height = videoHeight;
-        context.drawImage(video, 0, 0, videoWidth, videoHeight);
-
-        const capturedImageBase64 = capturedImageCanvas.toDataURL('image/jpeg');
-
-        fetch('/save_image/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ image_data: capturedImageBase64 })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                faceEncodingInput.value = data.face_encoding;
-            } else {
-                console.error('Error capturing image:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error capturing image:', error);
-        });
-    }
-
-    function stopWebcam() {
-        document.getElementById('st').style.display = "none";
-        if (webcamStream) {
-            webcamStream.getTracks().forEach(track => track.stop());
-            video.srcObject = null;
-            captureButton.disabled = true;
-        }
-    }
+});
 </script>
+
 {% endblock %}

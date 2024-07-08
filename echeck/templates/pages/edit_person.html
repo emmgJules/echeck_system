@@ -1,0 +1,20 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block content %}
+<div class="col-10 grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">Edit Person</h4>
+        <p class="card-description">
+          Modify the details of the person
+        </p>
+        <form class="forms-sample" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <button type="submit" class="btn btn-primary mr-2">Save changes</button>
+          <a href="{% url 'list_persons' %}" class="btn btn-light">Cancel</a>
+        </form>
+      </div>
+    </div>
+</div>
+{% endblock %}

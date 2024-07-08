@@ -1,0 +1,40 @@
+<!-- report.html -->
+
+{% extends '../index.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">Report</div>
+                <div class="card-body">
+                    <p>Filtered from {{ start_date }} to {{ end_date }} for {{ card_type }}</p>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Person</th>
+                                <th>Entry Date</th>
+                                <!-- Add more columns as needed -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in entries %}
+                            <tr>
+                                <td>{{ entry.person.fname }} {{ entry.person.lname }}</td>
+                                <td>{{ entry.entry_date }}</td>
+                                <!-- Add more fields as needed -->
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2">No entries found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

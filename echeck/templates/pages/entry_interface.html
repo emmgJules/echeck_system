@@ -1,0 +1,83 @@
+{% extends 'index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center text-lg mb-4">Real-Time Entry Recording</h2>
+                    <div id="entry-status" class="text-center mb-4">
+                        <img id="tap-card-img" src="{% static 'images/card.png' %}" class="img-fluid mb-3" alt="Tap Card Image" style="max-width: 400px;">
+                        <p class="lead">Tap your card to begin...</p>
+                    </div>
+                    <div id="entry-details" style="display: none;">
+                        <h4>Entry Details:</h4>
+                        <p><strong>Name:</strong> <span id="person-name"></span></p>
+                        <p><strong>Card ID:</strong> <span id="card-id"></span></p>
+                        <p><strong>Entry Time:</strong> <span id="entry-date"></span></p>
+                        <p><strong>Last Entry:</strong> <span id="last-entry-date"></span></p>
+                        <p><strong>Postion:</strong> <span id="position"></span></p>
+                        <img id="person-img" src="" class="img-fluid rounded-circle mb-3" alt="Person Image" style="max-width: 200px;">
+                    </div>
+                    <div id="loading-indicator" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        function fetchCardId() {
+            $('#loading-indicator').show();
+            $.ajax({
+                url: "{% url 'fetch_person_details' %}",
+                method: 'GET',
+                success: function(data) {
+                    $('#loading-indicator').hide();
+                    console.log("Server response:", data);
+                    if (data.person) {
+                        $('#entry-status').hide();
+                        $('#entry-details').show();
+                        $('#person-name').text(data.person.fname + ' ' + data.person.lname);
+                        $('#card-id').text(data.person.card_id);
+                        $('#last-entry-date').text(data.person.last_entry_date);
+                        $('#entry-date').text(data.person.entry_now);
+                        $('#position').text(data.person.card_type);
+                        $('#person-img').attr('src', data.person.img_url);
+                        
+                        // Display entry details for 2 seconds
+                        setTimeout(function() {
+                            $('#entry-details').hide();
+                            $('#entry-status').show();
+                        }, 5000);
+                    } else {
+                        console.error("No person data received:", data.error);
+                        // Handle no data scenario (optional)
+                    }
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                    $('#loading-indicator').hide();
+                    console.error("Error fetching card ID:", errorThrown);
+                    // Handle error scenario (optional)
+                },
+                complete: function() {
+                    // Re-fetch card ID after a delay
+                    setTimeout(fetchCardId, 1000);  // Adjust timing as needed
+                }
+            });
+        }
+
+        // Initial call to start fetching card ID
+        fetchCardId();
+    });
+</script>
+{% endblock %}
