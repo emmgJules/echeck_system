@@ -16,10 +16,7 @@ from django.shortcuts import render, HttpResponse, get_object_or_404
 from django.http import JsonResponse
 from .models import Entry, Person,Notification
 from datetime import datetime
-
-
-
-
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
@@ -39,6 +36,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Entry, Person
 from datetime import datetime
+import qrcode
+from django.conf import settings
+from django.conf.urls.static import static
 
 class CoreView:
     # views.py
@@ -172,62 +172,73 @@ class CoreView:
         django_logout(request)
         return redirect('index')
 
-# Additional views as per your application needs
+from .models import Person, Entry
 
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-from .models import Person, Entry, Notification
-from datetime import datetime
-from .serial_com import read_card_id_from_serial  # Assuming you have a function for serial communication
+def get_last_entry(person_id):
+        try:
+            person = Person.objects.get(pk=person_id)  # Assuming person_id is the primary key of Person model
+            last_entry = Entry.objects.filter(person=person).order_by('-entry_date').first()
+            if last_entry:
+                return last_entry
+            else:
+                return None
+        except Person.DoesNotExist:
+            return None
 
 class EntryView:
+   
+    @login_required(login_url='index')
+    # Assuming you have the person_id (or person object) for whom you want to fetch the last entry
+    
     @staticmethod
     @login_required(login_url='index')
     def entry_interface(request):
-        card = read_card_id_from_serial()
+        
+        return render(request, 'pages/entry_interface.html')
+    
 
-        return render(request, 'pages/entry_interface.html', {'card': card})
-
-    @staticmethod
+    
     @csrf_exempt
     @login_required(login_url='index')
     def fetch_person_details(request):
-        if request.method == 'GET' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            
-            card_id = read_card_id_from_serial()  # Replace with your function to read card ID from Arduino
-            if card_id:
-                person = get_object_or_404(Person, card_id=card_id)
-                
-                # Retrieve the last entry date before creating a new one
-                last_entry = Entry.objects.filter(person=person).order_by('-entry_date').first()
-                last_entry_date_str = last_entry.entry_date.strftime('%Y-%m-%d %H:%M:%S') if last_entry else 'No previous entry'
-                
-                # Create a new entry for the person (auto_now_add will set entry_date)
-                entry = Entry.objects.create(person=person, card_id=card_id)
-                Notification.objects.create(user=request.user, message="New Entry Created.")
-                
-                # Get the current entry date
-                current_entry_date_str = entry.entry_date.strftime('%Y-%m-%d %H:%M:%S')
-                
-                person_data = {
-                    'id': person.id,
-                    'fname': person.fname,
-                    'lname': person.lname,
-                    'img_url': str(person.img) if person.img else '',  # Convert ImageFieldFile to URL
-                    'last_entry_date': last_entry_date_str,  # Return the last entry date from the database
-                    'current_entry_date': current_entry_date_str,  # Return the current entry date
-                    'card_id': card_id  # Include the card ID
-                }
-                
-                return JsonResponse({'person': person_data})
+        try:
+            if request.method == 'GET':
+                try:
+                    card_id = read_card_id_from_serial()
+                    print(f"Received card ID from Arduino: {card_id}")
+                    if card_id:
+                        person = Person.objects.filter(card_id=card_id).first()
+                        if person:
+                            entry = Entry.objects.create(person=person, card_id=card_id)
+                            Notification.objects.create(user=request.user, message="New Entry Created.")
+                            last_entry = get_last_entry(person.id)
+                            print(f"The last Entry time:{last_entry}")
+                            entry_now=entry.entry_date
+                            print(f"The Entry time:{entry_now}")
+                            
+                            person_data = {
+                                'id': person.id,
+                                'fname': person.fname,
+                                'lname': person.lname,
+                                'card_id': person.card_id,
+                                'entry_now':entry_now,
+                                'card_type':person.card_type,
+                                'last_entry_date': last_entry.entry_date.strftime('%Y-%m-%d %H:%M:%S') if last_entry else None,
+                                'img_url': str(person.img.url) if person.img else '',  # Assuming img is an ImageField
+                                'message': 'Entry recorded successfully'
+                            }
+                            return JsonResponse({'person': person_data})
+                        else:
+                            return JsonResponse({'error': 'Person with this card ID does not exist'}, status=404)
+                    else:
+                        return JsonResponse({'error': 'Failed to fetch card ID'}, status=500)
+                except Exception as e:
+                    print(f"Error fetching card ID: {str(e)}")
+                    return JsonResponse({'error': str(e)}, status=500)
             else:
-                return JsonResponse({'error': 'Failed to fetch card ID'}, status=500)
-        else:
-            return HttpResponseBadRequest('Invalid request method or not AJAX')
-
+                return JsonResponse({'error': 'Invalid request method'}, status=405)
+        except:
+            print("ignored errrorrrs")
     @staticmethod
     @csrf_exempt
     @login_required(login_url='index')
@@ -262,7 +273,6 @@ class EntryView:
 class PersonView:
     form_class = PersonForm
 
-    @staticmethod
     @login_required(login_url='index')
     def create_person(request):
         if request.method == 'POST':
@@ -282,25 +292,57 @@ class PersonView:
             uploaded_file_url = fs.url(filename)
             print(f"Uploaded file URL: {uploaded_file_url}")
 
+            # Generate QR code data
+            qr_data = f"""
+            First Name: {fname}
+            Last Name: {lname}
+            Card ID: {card_id}
+            Position: {card_type}
+            Gender: {gender}
+            City: {city}
+            Phone: {phone}
+            Serial Number: {serial_number}
+            Brand: {brand}
+            """
 
+            # Generate QR code
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill='black', back_color='white')
+
+            # Ensure the qrcodes directory exists
+            qr_codes_dir = os.path.join(settings.MEDIA_ROOT, 'qrcodes')
+            if not os.path.exists(qr_codes_dir):
+                os.makedirs(qr_codes_dir)
+
+            # Save QR code image
+            qr_img_filename = f'{fname}_{card_id}.png'
+            qr_img_path = os.path.join(qr_codes_dir, qr_img_filename)
+            qr_img.save(qr_img_path)
+
+            # Save person record with the QR code path
             person = Person(
+                qr_code=f'qrcodes/{qr_img_filename}',
                 fname=fname,
                 lname=lname,
                 card_id=card_id,
                 card_type=card_type,
                 gender=gender,
-                img=uploaded_file_url,
+                img=filename,  # Use filename, not URL
                 city=city,
                 phone=phone,
                 serial_number=serial_number,
                 brand=brand
             )
             person.save()
+
             Notification.objects.create(user=request.user, message="New person created.")
             print(f"Person image URL in DB: {person.img}")  # Debugging line
             return redirect('list_persons')  # Redirect to a view that lists persons
 
         return render(request, 'pages/add_person.html')
+
 
     @staticmethod
     @login_required(login_url='index')

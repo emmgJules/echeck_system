@@ -25,6 +25,7 @@ class Person(models.Model):
     serial_number = models.CharField(max_length=100, unique=True)
     gender=models.CharField(max_length=255,null=True)
     img=models.ImageField(upload_to='media',null=True,blank=True)
+    qr_code=models.ImageField(upload_to='qrcodes',null=True,blank=True)
     city=models.CharField(max_length=255)
     phone=models.CharField(max_length=255,null=True)
     created=models.DateTimeField(auto_now_add=True)
