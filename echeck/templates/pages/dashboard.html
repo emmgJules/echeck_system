@@ -91,12 +91,80 @@
                 </div>
             </div>
 
-            <!-- Card Type Entry Chart -->
+            <!-- Exit statistics cards -->
+            <div class="col-md-6 grid-margin">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Exit Statistics</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <p class="mb-1">Today's Exits</p>
+                                        <h3 class="mb-3">{{ total_today_exits }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <p class="mb-1">Total Exits</p>
+                                        <h3 class="mb-3">{{ total_exits }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <p class="mb-1">Number of Students Exits</p>
+                                        <h3 class="mb-3">{{ total_students_exits }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <p class="mb-1">Number of Staff Exits</p>
+                                        <h3 class="mb-3">{{ total_staff_exits }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <p class="mb-1">Number of Teachers Exits</p>
+                                        <h3 class="mb-3">{{ total_teachers_exits }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <p class="mb-1">Number of Visitors Exits</p>
+                                        <h3 class="mb-3">{{ total_visitors_exits }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entry and Exit Distribution Charts -->
             <div class="col-md-6 grid-margin">
                 <div class="card">
                     <div class="card-body">
                         <h4 class="card-title">Entry Distribution by Card Type</h4>
                         <canvas id="cardTypeChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 grid-margin">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Exit Distribution by Card Type</h4>
+                        <canvas id="exitTypeChart" width="400" height="300"></canvas>
                     </div>
                 </div>
             </div>
@@ -111,16 +179,49 @@
 
 <script src="{% static 'js/chart.min.js' %}"></script>
 <script>
-    // Chart.js initialization
+    // Chart.js initialization for Entry Distribution
     document.addEventListener('DOMContentLoaded', function() {
-        var ctx = document.getElementById('cardTypeChart').getContext('2d');
-        var cardTypeChart = new Chart(ctx, {
+        var ctxEntry = document.getElementById('cardTypeChart').getContext('2d');
+        var cardTypeChart = new Chart(ctxEntry, {
             type: 'pie',
             data: {
                 labels: ['Students', 'Staff', 'Teachers', 'Visitors'],
                 datasets: [{
                     label: 'Entry Distribution by Card Type',
                     data: [{{ total_students }}, {{ total_staff }}, {{ total_teachers }}, {{ total_visitors }}],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Chart.js initialization for Exit Distribution
+        var ctxExit = document.getElementById('exitTypeChart').getContext('2d');
+        var exitTypeChart = new Chart(ctxExit, {
+            type: 'pie',
+            data: {
+                labels: ['Students', 'Staff', 'Teachers', 'Visitors'],
+                datasets: [{
+                    label: 'Exit Distribution by Card Type',
+                    data: [{{ total_students_exits }}, {{ total_staff_exits }}, {{ total_teachers_exits }}, {{ total_visitors_exits }}],
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.8)',
                         'rgba(54, 162, 235, 0.8)',

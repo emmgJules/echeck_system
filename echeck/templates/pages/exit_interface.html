@@ -1,0 +1,114 @@
+{% extends 'index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center text-lg mb-4">Real-Time Exit Recording</h2>
+                    <div id="entry-status" class="text-center mb-4">
+                        <img id="scan-qr-img" src="{% static 'images/qr.webp' %}" class="img-fluid mb-3" alt="Scan QR Code Image" style="max-width: 400px;">
+                        <p class="lead">Scan your QR code to begin...</p>
+                    </div>
+                    <div id="entry-details" style="display: none;">
+                        <h4>Exit Details:</h4>
+                        <p><strong>Name:</strong> <span id="person-name"></span></p>
+                        <p><strong>Serial Number:</strong> <span id="serial-number"></span></p>
+                        <p><strong>Brand Name:</strong> <span id="brand"></span></p>
+                        <p><strong>Exit Time:</strong> <span id="entry-date"></span></p>
+                        <p><strong>Last Entry:</strong> <span id="last-entry-date"></span></p>
+                        <p><strong>Card Type:</strong> <span id="card-type"></span></p>
+                        <img id="person-img" src="" class="img-fluid rounded-circle mb-3" alt="Person Image" style="max-width: 200px;">
+                    </div>
+                    <div id="loading-indicator" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="qr-form" method="POST" style="display: none;">
+    {% csrf_token %}
+    <input type="text" id="qr-hidden-input" name="qr_data" />
+</form>
+
+<input type="text" id="qr-input" style="opacity: 0; position: absolute;"/>
+
+<script src="{% static 'js/jquery-3.7.1.js'%}"></script>
+<script>
+$(document).ready(function() {
+    function fetchQrCodeDetails(serial_number) {
+        $('#loading-indicator').show();
+        $.ajax({
+            url: "{% url 'exit' %}",
+            method: 'POST',
+            data: {
+                'qr_data': serial_number,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'  // Include CSRF token
+            },
+            success: function(data) {
+                $('#loading-indicator').hide();
+                console.log("Server response:", data); // Print response to console
+                
+                if (data.person) {
+                    $('#entry-status').hide();
+                    $('#entry-details').show();
+                    $('#person-name').text(data.person.fname + ' ' + data.person.lname);
+                    $('#serial-number').text(data.person.serial_number);
+                    $('#brand').text(data.person.brand);
+                    $('#entry-date').text(data.person.exit_now);
+                    $('#last-entry-date').text(data.person.last_entry_date || 'N/A');
+                    $('#card-type').text(data.person.qr_code_type);
+                    $('#person-img').attr('src', data.person.img_url);
+                    
+                    // Display entry details for 5 seconds
+                    setTimeout(function() {
+                        $('#entry-details').hide();
+                        $('#entry-status').show();
+                    }, 5000);
+                } else {
+                    console.error("No person data received:", data.error);
+                }
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                $('#loading-indicator').hide();
+                console.error("Error fetching QR code details:", errorThrown);
+            }
+        });
+    }
+
+    function handleScan() {
+        var input = $('#qr-input').val().trim();
+        if (input) {
+            console.log("Fetching details for:", input); // Print input to console
+            fetchQrCodeDetails(input);  // Fetch data using AJAX
+            $('#qr-input').val('');  // Clear input field
+        }
+    }
+
+    $('#qr-input').on('change', handleScan);
+
+    // Ensure the input field is always focused
+    setInterval(function() {
+        $('#qr-input').focus();
+    }, 100);
+
+    // Handle keypress events to capture QR code data
+    $('#qr-input').on('keypress', function(e) {
+        if (e.which === 13) {  // Enter key pressed
+            handleScan();
+        }
+    });
+
+    // Focus on the hidden input field when the page loads
+    $('#qr-input').focus();
+});
+</script>
+{% endblock %}

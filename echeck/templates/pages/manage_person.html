@@ -4,19 +4,20 @@
 <div class="col-lg-10">
     <div class="card card-outline card-primary">
         <div class="card-header">
-            <h4 class="card-title">Person Details {{person.id}}</h4>
+            <h4 class="card-title">Person Details {{ person.id }}</h4>
         </div>
         <div class="card-body" id="print_out">
             <div class="container-fluid">
+                
                 <div class="row">
                     <div class="col-md-6">
                         <label class="control-label text-info">Person Id</label>
-                        <div>00{{person.id}}</div>
+                        <div>00{{ person.id }}</div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="supplier_id" class="control-label text-info">Postion</label>
-                            <div>{{person.card_type}}</div>
+                            <label for="supplier_id" class="control-label text-info">Position</label>
+                            <div>{{ person.card_type }}</div>
                         </div>
                     </div>
                 </div>
@@ -41,22 +42,26 @@
                         </tr>
                     </thead>
                     <tbody>
-                          
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td class="text-center py-2 px-2" >{{person.fname}} </td>
-                            <td class="text-center py-1 px-2" >{{person.lname}}</td>
-                            <td class="text-center py-1 px-2" >{{person.phone}} </td>
-                            <td class="text-center py-1 px-2" >{{person.city}}</td>
-                            <td class="text-center py-1 px-2" >{{person.created}}</td>
-                            <td class="text-center py-1 px-2" ><img src="{{person.img.url}}" alt=""></td>
+                            <td class="text-center py-2 px-2">{{ person.fname }}</td>
+                            <td class="text-center py-1 px-2">{{ person.lname }}</td>
+                            <td class="text-center py-1 px-2">{{ person.phone }}</td>
+                            <td class="text-center py-1 px-2">{{ person.city }}</td>
+                            <td class="text-center py-1 px-2">{{ person.created }}</td>
+                            <td class="text-center py-1 px-2">
+                                {% if person.img %}
+                                    <img src="{{ person.img.url }}" alt="" style="max-width: 100px;">
+                                {% else %}
+                                    <img src="{% static 'images/default.jpg' %}" alt="" style="max-width: 100px;">
+                                {% endif %}
+                            </td>
                         </tr>
-
                     </tfoot>
                 </table>
-                <h4 class="text-info pt-4">Details-Peroperty</h4>
-                <table class=" col-lg-2 table table-striped table-bordered" id="list">
+                <h4 class="text-info pt-4">Details-Property</h4>
+                <table class="col-lg-2 table table-striped table-bordered" id="list">
                     <colgroup>
                         <col width="10%">
                         <col width="10%">
@@ -67,22 +72,18 @@
                     <thead>
                         <tr class="text-light bg-primary">
                             <th class="text-center py-1 px-2">Laptop Name</th>
-                            <th class="text-center py-1 px-2">Laptop serial_number</th>
+                            <th class="text-center py-1 px-2">Laptop Serial Number</th>
                             <th class="text-center py-1 px-2">Card Id</th>
                         </tr>
                     </thead>
                     <tbody>
-                          
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td class="text-center py-2 px-2" >{{person.brand}}</td>
-                            <td class="text-center py-1 px-2" > {{person.serial_number}}</td>
-                            <td class="text-center py-1 px-2" > {{person.card_id}}</td>
-                       
-                            
+                            <td class="text-center py-2 px-2">{{ person.brand }}</td>
+                            <td class="text-center py-1 px-2">{{ serial_number }}</td>
+                            <td class="text-center py-1 px-2">{{ person.card_id }}</td>
                         </tr>
-
                     </tfoot>
                 </table>
                 <div class="row">
@@ -92,22 +93,51 @@
                             <p></p>
                         </div>
                     </div>
-
-    
                 </div>
             </div>
         </div>
-<div class="card-footer py-1 text-center">
-    <button class="btn btn-flat btn-success" type="button" id="print">Print</button>
-    <a class="btn btn-flat btn-primary" href="{% url 'delete_person' person.id %}">Remove</a>
-    <a class="btn btn-flat btn-warning" href="{% url 'update_person' person.id %}">Edit</a>
-    <a class="btn btn-flat btn-dark" href="{% url 'list_persons' %}">Back To List</a>
-</div>
+        <!-- Display QR Code Image -->
+        <div class="row mb-4">
+            <div class="col-md-12 text-center">
+                <h4 class="text-info">QR Code</h4>
+                {% if person.qr_code %}
+                    <img src="{{ person.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                {% else %}
+                    <img src="{% static 'images/default_qr.jpg' %}" alt="No QR Code" class="img-fluid" style="max-width: 200px;">
+                {% endif %}
+            </div>
+        </div>
 
+        <div class="card-footer py-1 text-center">
+            <button class="btn btn-flat btn-success" type="button" id="print-btn">Print</button>
+            <a class="btn btn-flat btn-primary" href="{% url 'delete_person' person.id %}">Remove</a>
+            <a class="btn btn-flat btn-warning" href="{% url 'update_person' person.id %}">Edit</a>
+            <a class="btn btn-flat btn-dark" href="{% url 'list_persons' %}">Back To List</a>
+        </div>
     </div>
-
 </div>
 
 <br>
 <br>
-{%endblock%}
+<script src="{% static 'js/jquery-3.7.1.js'%}"></script>
+<script>
+    $(document).ready(function() {
+        $('#print-btn').click(function() {
+            $.ajax({
+                url: '{% url "read_person" pk=person.id %}',
+                type: 'POST',
+                data: {
+                    'print': 'true',
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    alert(response.message);
+                },
+                error: function(xhr, status, error) {
+                    alert('An error occurred: ' + error);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

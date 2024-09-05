@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print QR Code</title>
+    <style>
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                text-align: center;
+            }
+            img {
+                display: block;
+                margin: 0 auto;
+                page-break-after: avoid;
+                max-width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <img src="{{ qr_code_url }}" alt="QR Code">
+    <script>
+        window.onload = function() {
+            window.print();
+            // Automatically close the print preview tab after printing
+            setTimeout(function() {
+                window.close();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

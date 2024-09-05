@@ -1,3 +1,4 @@
+{% load static %}
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
         <ul class="nav">
           <li class="nav-item">
@@ -16,7 +17,6 @@
               <ul class="nav flex-column sub-menu">
                 <li class="nav-item"> <a class="nav-link" href="{% url 'create_person' %}">Add</a></li>
                 <li class="nav-item"> <a class="nav-link" href="{% url 'list_persons' %}">View</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'report_persons' %}">digital</a></li>
               </ul>
             </div>
           </li>
@@ -31,10 +31,22 @@
               <ul class="nav flex-column sub-menu">
                 <li class="nav-item"> <a class="nav-link" href="{% url 'entry' %}">Record</a></li>
                 <li class="nav-item"> <a class="nav-link" href="{% url 'list_entry' %}">View</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'report_entry' %}">Report</a></li>
               </ul>
             </div>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="collapse" href="#exit" aria-expanded="false" aria-controls="exit">
+              <img src="{% static 'icon/exit-outline.svg' %}" style="height: 23px; padding-right: 10px; opacity: 0.7;"  alt="">
+              <span class="menu-title">Exit</span>
+                <i class="menu-arrow"></i>
+            </a>
+            <div class="collapse" id="exit">
+                <ul class="nav flex-column sub-menu">
+                  <li class="nav-item"> <a class="nav-link" href="{% url 'exit' %}">Record</a></li>
+                    <li class="nav-item"> <a class="nav-link" href="{% url 'view_exit' %}">View</a></li>
+                </ul>
+            </div>
+        </li>
 
           <li class="nav-item">
             <a class="nav-link" data-toggle="collapse" href="#auth" aria-expanded="false" aria-controls="auth">

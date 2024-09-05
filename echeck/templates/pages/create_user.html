@@ -1,6 +1,31 @@
 {% extends '../index.html' %}
 {% load static %}
+
 {% block content %}
+<style>
+input, select, textarea {
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+input:invalid {
+    border-color: red;
+}
+
+input:valid {
+    border-color: green;
+}
+
+.text-danger {
+    color: red;
+    font-size: 0.875rem;
+    margin-top: .25rem;
+}
+
+</style>
 <div class="col-10 grid-margin stretch-card">
     <div class="card">
         <div class="card-body">
@@ -12,8 +37,120 @@
                 {{ profile_form.as_p }}
                 <button type="submit" class="btn btn-primary mr-2">Submit</button>
                 <button type="reset" class="btn btn-light">Cancel</button>
+                <div id="form-messages"></div>
             </form>
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const formMessages = document.getElementById('form-messages');
+
+    function validateField(field) {
+        const formData = new FormData();
+        formData.append(field.name, field.value);
+
+        fetch('/validate/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const errorElement = document.querySelector(`#${field.name}-error`);
+            if (data.error && data.error[field.name]) {
+                field.style.borderColor = 'red';
+                if (errorElement) {
+                    errorElement.textContent = data.error[field.name];
+                } else {
+                    const newErrorElement = document.createElement('div');
+                    newErrorElement.id = `${field.name}-error`;
+                    newErrorElement.className = 'text-danger';
+                    newErrorElement.textContent = data.error[field.name];
+                    field.parentNode.insertBefore(newErrorElement, field.nextSibling);
+                }
+            } else {
+                field.style.borderColor = 'green';
+                if (errorElement) {
+                    errorElement.remove();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function validatePasswords() {
+        const password1 = document.querySelector('input[name="password1"]');
+        const password2 = document.querySelector('input[name="password2"]');
+
+        if (password1 && password2) {
+            const errorElement = document.querySelector('#password2-error');
+            if (password1.value !== password2.value) {
+                password2.style.borderColor = 'red';
+                if (!errorElement) {
+                    const newErrorElement = document.createElement('div');
+                    newErrorElement.id = 'password2-error';
+                    newErrorElement.className = 'text-danger';
+                    newErrorElement.textContent = 'Passwords do not match.';
+                    password2.parentNode.insertBefore(newErrorElement, password2.nextSibling);
+                }
+            } else {
+                password2.style.borderColor = 'green';
+                if (errorElement) {
+                    errorElement.remove();
+                }
+            }
+        }
+    }
+
+    document.querySelectorAll('input, select, textarea').forEach(input => {
+        input.addEventListener('input', function() {
+            validateField(this);
+            if (this.name === 'password1' || this.name === 'password2') {
+                validatePasswords();
+            }
+        });
+    });
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        // Validate all fields before submission
+        document.querySelectorAll('input, select, textarea').forEach(input => {
+            validateField(input);
+            if (input.name === 'password1' || input.name === 'password2') {
+                validatePasswords();
+            }
+        });
+
+        const formData = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                formMessages.innerHTML = '<div class="alert alert-danger">' + Object.values(data.error).join('<br>') + '</div>';
+            } else {
+                formMessages.innerHTML = '<div class="alert alert-success">User created successfully!</div>';
+                form.reset();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+});
+</script>
 {% endblock %}

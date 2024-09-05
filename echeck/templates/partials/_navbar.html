@@ -40,7 +40,11 @@
         </li>
           <li class="nav-item nav-profile dropdown">
             <a   class="nav-link dropdown-toggle" href="{% url 'user-profile' request.user.id %}" data-toggle="dropdown" id="profileDropdown">
+              {% if request.user.userprofile.profile_picture %}
               <img src="{{ request.user.userprofile.profile_picture.url }}" alt="profile"/>
+              {% else %}
+              <img src="{% static 'images/default.jpg' %}" alt="profile"/>
+              {% endif %}
             </a>
             <div class="dropdown-menu dropdown-menu-right navbar-dropdown" aria-labelledby="profileDropdown">
               <a href="{% url 'user-profile' request.user.id%}" class="dropdown-item">
@@ -61,7 +65,7 @@
       </div>
     </nav>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{% static 'js/jquery-3.7.1.js'%}"></script>
 <script>
     $(document).ready(function() {
         function fetchNotifications() {

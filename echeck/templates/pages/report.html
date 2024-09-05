@@ -1,5 +1,3 @@
-<!-- report.html -->
-
 {% extends '../index.html' %}
 
 {% block content %}
@@ -7,34 +5,167 @@
     <div class="row justify-content-center mt-5">
         <div class="col-md-10">
             <div class="card">
-                <div class="card-header">Report</div>
+                <div class="card-header">Generate Report</div>
                 <div class="card-body">
-                    <p>Filtered from {{ start_date }} to {{ end_date }} for {{ card_type }}</p>
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Person</th>
-                                <th>Entry Date</th>
-                                <!-- Add more columns as needed -->
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for entry in entries %}
-                            <tr>
-                                <td>{{ entry.person.fname }} {{ entry.person.lname }}</td>
-                                <td>{{ entry.entry_date }}</td>
-                                <!-- Add more fields as needed -->
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="2">No entries found</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <!-- Filter Form -->
+                    <form id="reportForm">
+                        {% csrf_token %}
+                        <div class="row mb-3">
+                            <div class="col-md-3 mb-3">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate" name="start_date" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate" name="end_date" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="reportType" class="form-label">Report Type</label>
+                                <select class="form-select" id="reportType" name="report_type">
+                                    <option value="person">Person</option>
+                                    <option value="entry">Entry</option>
+                                    <option value="exit">Exit</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="category" class="form-label">Category</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="all">All</option>
+                                    <option value="staff">Staff</option>
+                                    <option value="visitor">Visitor</option>
+                                    <option value="student">Student</option>
+                                    <option value="teacher">Teacher</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12 d-flex justify-content-end">
+                                <button type="button" class="btn btn-primary me-2" onclick="generateReport()">Generate Report</button>
+                                <button type="button" class="btn btn-success me-2" onclick="downloadReport('csv')">Download CSV</button>
+                                <button type="button" class="btn btn-danger" onclick="downloadReport('pdf')">Download PDF</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Loading Indicator -->
+                    <div id="loading-indicator" class="text-center" style="display: none;">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Report Results -->
+                    <div id="reportSection" class="mt-4">
+                        <p id="filterSummary"></p>
+                        <table id="reportTable" class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <!-- Table headers will be dynamically inserted -->
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Table rows will be dynamically inserted -->
+                            </tbody>
+                        </table>
+                        <p id="errorMessage" class="text-danger" style="display: none;"></p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function getCsrfToken() {
+        return document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    }
+
+    function generateReport() {
+        $('#loading-indicator').show(); // Show loading indicator
+        $('#errorMessage').hide(); // Hide error message
+        $('#reportTable').find('thead').empty(); // Clear existing headers
+        $('#reportTable').find('tbody').empty(); // Clear existing rows
+
+        var startDate = $('#startDate').val();
+        var endDate = $('#endDate').val();
+        var reportType = $('#reportType').val();
+        var category = $('#category').val();
+
+        $.ajax({
+            url: '{% url "generate_report" %}', // Ensure the URL matches your Django view
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken() // Include CSRF token in the header
+            },
+            data: {
+                start_date: startDate,
+                end_date: endDate,
+                report_type: reportType,
+                category: category
+            },
+            dataType: 'json',
+            success: function(data) {
+                $('#loading-indicator').hide(); // Hide loading indicator
+
+                if (data.success) {
+                    $('#filterSummary').text('Filtered from ' + startDate + ' to ' + endDate + ' for ' + reportType);
+                    populateReportTable(data);
+                } else {
+                    $('#errorMessage').text(data.error).show();
+                    console.error('Server Error:', data.error); // Log server error
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#loading-indicator').hide(); // Hide loading indicator
+                $('#errorMessage').text('An error occurred: ' + xhr.status + ' ' + xhr.statusText + '. ' + error).show();
+                console.error('AJAX Error:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText
+                });
+            }
+        });
+    }
+
+    function populateReportTable(data) {
+        var tableHeader = '';
+        var tableRows = '';
+
+        // Build table header
+        if (data.headers) {
+            tableHeader = '<tr>';
+            data.headers.forEach(function(header) {
+                tableHeader += '<th>' + header + '</th>';
+            });
+            tableHeader += '</tr>';
+            $('#reportTable').find('thead').append(tableHeader);
+        }
+
+        // Build table rows
+        if (data.rows) {
+            data.rows.forEach(function(row) {
+                var rowHtml = '<tr>';
+                row.forEach(function(cell) {
+                    rowHtml += '<td>' + cell + '</td>';
+                });
+                rowHtml += '</tr>';
+                tableRows += rowHtml;
+            });
+            $('#reportTable').find('tbody').append(tableRows);
+        }
+    }
+
+    function downloadReport(format) {
+        var startDate = $('#startDate').val();
+        var endDate = $('#endDate').val();
+        var reportType = $('#reportType').val();
+        var category = $('#category').val();
+
+        var downloadUrl = '{% url "download_report_csv" %}?start_date=' + startDate + '&end_date=' + endDate + '&report_type=' + reportType + '&category=' + category;
+
+        if (format === 'pdf') {
+            downloadUrl = '{% url "download_report_pdf" %}?start_date=' + startDate + '&end_date=' + endDate + '&report_type=' + reportType + '&category=' + category;
+        }
+
+        window.location.href = downloadUrl;
+    }
+</script>
 {% endblock %}

@@ -48,8 +48,10 @@
       {% include 'partials/_sidebar.html' %}
       <!-- partial -->
       {% block content %}
+      
       {% endblock %}
-
+      
+    
       <!-- main-panel ends -->
     </div>   
     <!-- page-body-wrapper ends -->
@@ -73,11 +75,14 @@
   <script src="{% static 'js/template.js'%}"></script>
   <script src="{% static 'js/settings.js'%}"></script>
   <script src="{% static 'js/todolist.js'%}"></script>
+  <script src="{% static 'js/jquery-3.7.1.js'%}"></script>
   <!-- endinject -->
   <!-- Custom js for this page-->
   <script src="{% static 'js/dashboard.js'%}"></script>
   <script src="{% static 'js/Chart.roundedBarCharts.js'%}"></script>
   <script src="{% static 'js/file-upload.js'%}"></script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
   <!-- End custom js for this page-->
 </body>
 

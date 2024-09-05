@@ -25,8 +25,9 @@ SECRET_KEY = 'django-insecure-8yk4#*1*rqye#n%95sv=9yhg1(&0e_bpyz-fm4+kl#5p#x-x&1
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+CUSTOM_ERROR_PAGES = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -49,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.CustomErrorPagesMiddleware',  
 ]
 
 ROOT_URLCONF = 'echeck.urls'
